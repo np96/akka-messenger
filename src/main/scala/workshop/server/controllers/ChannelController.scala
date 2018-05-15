@@ -3,6 +3,7 @@ package workshop.server.controllers
 import akka.http.scaladsl.server.Route
 import workshop.{Channel, Message}
 import workshop.server.Controller
+import workshop.services.ChannelService
 
 object ChannelController {
   case class CreateChannelRequest(name: String, description: String)
@@ -19,13 +20,13 @@ object ChannelController {
   case class RenderChannelResponse(channel: Channel, messages: Seq[Message])
 }
 
-class ChannelController extends Controller {
+class ChannelController(channelService: ChannelService) extends Controller {
   import ChannelController._
 
   override def routes: Route = channelInfoRoute ~ joinChannelRoute ~ sendMessageToChannelRoute ~ createChannelRoute ~ archiveChannelRoute ~ renderChannelRoute
 
   private val channelInfoRoute = path(Segment / "info") { channelName =>
-    ???
+    complete(channelService.channelInfo(channelName))
   }
   
   private val archiveChannelRoute = (path(Segment / "close") & post) { channelName =>
@@ -34,7 +35,7 @@ class ChannelController extends Controller {
 
   private val joinChannelRoute = path(Segment / "join") { channelName =>
     (post & entity(as[JoinChannelRequest])) { request =>
-      ???
+      complete(channelService.joinChannel(channelName, request.login))
     }
   }
 
@@ -45,7 +46,7 @@ class ChannelController extends Controller {
   }
 
   private val createChannelRoute = (post & entity(as[ChannelController.CreateChannelRequest])) { request =>
-    ???
+    complete(channelService.createChannel(request.name, request.description))
   }
 
   private val renderChannelRoute = (path(Segment) & parameters('lastMessagesNumber.as[Int])) { (channelName, lastMessagesNumber) =>
