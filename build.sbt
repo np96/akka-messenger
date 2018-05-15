@@ -8,6 +8,10 @@ val ItAndTest = "it,test"
 
 lazy val app = (project in file("."))
   .configs(IntegrationTest)
+  .enablePlugins(
+    sbtdocker.DockerPlugin,
+    JavaAppPackaging,
+  )
   .settings(Defaults.itSettings)
   .settings(
     libraryDependencies ++= Seq(
@@ -44,4 +48,18 @@ lazy val app = (project in file("."))
       "org.scalatest" %% "scalatest" % "3.0.3" % ItAndTest,
       "org.scalamock" %% "scalamock-scalatest-support" % "3.6.0" % ItAndTest
     )
+  )
+  .settings(
+    dockerfile in docker := {
+      val appDir: File = stage.value
+      val targetDir = s"/opt/${name.value}"
+
+      new Dockerfile {
+        from("java:openjdk-8-jre")
+        expose(8080)
+        copy(appDir, targetDir)
+        workDir(targetDir)
+        entryPoint(s"$targetDir/bin/${executableScriptName.value}")
+      }
+    }
   )
